@@ -108,8 +108,19 @@ def fetch_and_stitch(bounds, zoom, source, side_meters):
     cropped.save(f"DEBUG_stitched_{source}_z{zoom}.png")
     return cropped
 
-# --- Main Entry Point ---
+def calculate_optimal_zoom(lat, side_meters, target_res):
+    """Calculates the minimum zoom level needed to meet or exceed a target resolution."""
+    # C * cos(lat) / 2^(zoom + 8) = meters_per_pixel
+    # target_res = side_meters / meters_per_pixel
+    # Therefore: target_res = side_meters / (C * cos(lat) / 2^(zoom + 8))
+    
+    cos_lat = math.cos(math.radians(lat))
+    # Solve for zoom:
+    zoom = math.log2((target_res * EARTH_CIRCUMFERENCE * cos_lat) / (side_meters * 256))
+    return math.ceil(zoom)
 
+
+# --- Main Entry Point ---
 def main():
     parser = argparse.ArgumentParser(description="Cities: Skylines II Map Grabber")
     parser.add_argument("name", help="Base name for output files")
@@ -117,9 +128,14 @@ def main():
     parser.add_argument("lng", type=float, help="Longitude")
     parser.add_argument("--layers", nargs="+", default=["elev", "sat", "map", "osm"], choices=["elev", "sat", "map", "osm"])
     parser.add_argument("--anchor", default="center", choices=["center", "NW", "NE", "SW", "SE"])
-    parser.add_argument("--res", type=int, default=4096, choices=[4096, 8192, 16384])
-    parser.add_argument("--zoom", type=int, default=15, help="Zoom level")
+    parser.add_argument("--res", type=int, default=4096, choices=[1024, 2048, 4096, 8192, 16384])
+    parser.add_argument("--zoom", type=int, default=0, help="Zoom level")
     args = parser.parse_args()
+
+    opt_zoom = calculate_optimal_zoom(args.lat, CSII_CITY_METERS, args.res)
+    if (args.zoom>0): zoom = args.zoom
+    else: zoom = opt_zoom
+    print(f"[INFO] Using zoom level {zoom} (Min required for {args.res}px: {opt_zoom})")
 
     # Define standard bounds
     city_bounds = get_master_bounds(args.lat, args.lng, args.anchor, CSII_CITY_METERS)
@@ -130,10 +146,10 @@ def main():
     # 1. Elevation Layer Processing
     if "elev" in args.layers:
         print("--- Processing Elevation (World & City) ---")
-        MEGA_SIZE, CITY_SIZE = 16384, 4096
+        CITY_SIZE, MEGA_SIZE = args.res, args.res * 4
         
         # Stitch and Decode
-        raw_img = fetch_and_stitch(world_bounds, args.zoom, "terrarium", CSII_WORLD_METERS)
+        raw_img = fetch_and_stitch(world_bounds, zoom, "terrarium", CSII_WORLD_METERS)
         mega_heights = decode_terrarium(raw_img)
         
         # Resize to fixed mega resolution if necessary
@@ -151,7 +167,7 @@ def main():
         h_min_adj = min(-sealevel, h_min - 10)
         h_max_adj = max(4096.0 - sealevel, mega_heights.max() + 10)
         
-        print(f"Vertical Range: {h_min_adj:.2f}m to {h_max_adj:.2f}m")
+        print(f"Vertical Range: {h_min_adj:.2f}m to {h_max_adj:.2f}m ({h_max_adj - h_min_adj:.2f} total)")
 
         # Extract City Crop
         start = (MEGA_SIZE - CITY_SIZE) // 2
@@ -172,7 +188,7 @@ def main():
     for key, (source, suffix) in visuals.items():
         if key in args.layers:
             print(f"--- Processing {key.upper()} Layer ---")
-            img = fetch_and_stitch(city_bounds, args.zoom, source, CSII_CITY_METERS)
+            img = fetch_and_stitch(city_bounds, zoom, source, CSII_CITY_METERS)
             
             # Resizing logic
             resample = Image.Resampling.LANCZOS if img.size[0] > args.res else Image.Resampling.BICUBIC
