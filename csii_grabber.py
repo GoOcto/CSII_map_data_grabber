@@ -91,7 +91,7 @@ def fetch_and_stitch(bounds, zoom, source, side_meters):
     m_per_px = (EARTH_CIRCUMFERENCE * math.cos(math.radians(lat_max))) / (2**(zoom + 8))
     target_px = int(side_meters / m_per_px)
 
-    print(f"\nStitching {width_tiles}x{height_tiles} tiles for {source} at zoom {zoom}...")
+    print(f"Stitching {width_tiles}x{height_tiles} tiles for {source} at zoom {zoom}...")
     canvas = Image.new('RGB', (width_tiles * 256, height_tiles * 256))
     
     for i in range(width_tiles):
@@ -145,7 +145,7 @@ def main():
 
     # 1. Elevation Layer Processing
     if "elev" in args.layers:
-        print("--- Processing Elevation (World & City) ---")
+        print("\n--- Processing Elevation (World & City) ---")
         CITY_SIZE, MEGA_SIZE = args.res, args.res * 4
         
         # Stitch and Decode
@@ -187,7 +187,7 @@ def main():
     visuals = {"sat": ("google_s", "_satellite.png"), "map": ("google_m", "_map.png"), "osm": ("osm", "_osm.png")}
     for key, (source, suffix) in visuals.items():
         if key in args.layers:
-            print(f"--- Processing {key.upper()} Layer ---")
+            print(f"\n--- Processing {key.upper()} Layer ---")
             img = fetch_and_stitch(city_bounds, zoom, source, CSII_CITY_METERS)
             
             # Resizing logic
