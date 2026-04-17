@@ -45,18 +45,17 @@ python csii_grabber.py banff 51.188263 -115.546593 --layers sat --zoom 15
 
 Only use zoom to specifically override the automatic calculation which is based on the requested resolution.
 
-The anchor is used when your coordinates specify one corner of your CSII map rather than the center. So, if your coordinates are for the top right corner of your map you would specify `--anchor NW`.
+The anchor is used when your coordinates specify one corner of your CSII map rather than the center. So, if your coordinates are for the top left corner of your map you would specify `--anchor NW`.
 
 ## Technical Details
 
 ### Alignment
 
-The script uses a reference size of 14,336 meters for the playable city area and 57,344 meters for the world area. These dimensions are specifically calculated to align with the Cities: Skylines II terrain grid.
+The script uses a reference size of 14,336 meters for the playable city area and 57,344 meters for the world area. These dimensions are specifically used in the  City Skylines II game.
 
-CSII applies a scaler to your heightmaps of 4096. The code tries to honor this default when it generates the heightmap and worldmap. If your particular map covers more than 4096 vertical units, then the script will tell you what the scale value is to use. It will add a small margin so that your heightmap does not contain the most extreme high and low values which could make adding sealevel and other map features difficult.
+CSII map editor usually applies a scaler to your heightmaps of 4096. The code tries to honor this default when it generates the heightmap and worldmap. If your particular map covers more than 4096 vertical units, then the script will tell you what scale value to use. It will add a small margin so that your heightmap does not contain the most extreme high and low values which could make adding sealevel and other map features difficult.
 
-[!TIP]
-When the output says: "Vertical Range: -10.00m to 4531.28m (4541.28 total)" you will want to use 4541 as your scaler to properly represent the range of elevations in the data. You will only need to worry about this in areas of great relief.
+> 💡 **Tip:** When the output says: "Vertical Range: -10.00m to 4531.28m (4541.28 total)" you will want to use 4541 as your scaler to properly represent the range of elevations in the data. You will only need to worry about this in areas of great relief.
 
 * The code may output one or more DEBUG_stitched_... PNG files. These are so you can verify the integrity of the data. These files are the results of stitching together multiple tiles from a source. The final files are derived directly from these ones by cropping and scaling to the precise coordinates.
 
@@ -73,12 +72,10 @@ The script automatically processes raw "Terrarium" RGB tiles into a 16-bit grays
 * Buffers: It applies a 10.0m sea-level offset and an additional 10m vertical padding to the boundaries.
 * Normalization: The vertical data is mapped to the 16-bit range ($0$ to $65535$) where the lowest point ($h_{min} - 10$) becomes black and the highest point ($h_{max} + 10$) becomes white.
 
-[!TIP]
-#### Matching the Map Editor Scale
-Cities: Skylines II defaults to a height scale of 4096. If your map covers significant mountain ranges or deep trenches, check the script's console output:
+> 💡 **Tip:** Cities: Skylines II defaults to a height scale of 4096. If your map covers significant mountain ranges or deep trenches, check the script's console output:
 
 ```bash
-Example output: Vertical Range: -10.00m to 4531.28m (4541.28 total)
+Vertical Range: -10.00m to 4531.28m (4541.28 total)
 ```
 
 In this case, you should set your Offset to -10 and your Scale to 4541 in the Map Editor to ensure your terrain isn't flattened or clipped.
